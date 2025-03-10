@@ -1,0 +1,39 @@
+{
+  "name": "nocodb-client",
+  "description": "NocoDb client for Node.js",
+  "version": "2.0.0",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint . && prettier -c \"**/*.js\" \"**/*.json\" \"**/*.md\"",
+    "fix": "eslint . --fix && prettier --write \"**/*.js\" \"**/*.json\" \"**/*.md\""
+  },
+  "author": {
+    "name": "Evgeniy Politiko",
+    "email": "Jhon-mosk@yandex.ru",
+    "url": "https://jhon-mosk.ru/"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=7.24.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jhon-Mosk/node-nocodb.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Jhon-Mosk/node-nocodb/issues"
+  },
+  "homepage": "https://github.com/Jhon-Mosk/node-nocodb",
+  "keywords": [
+    "NocoDb",
+    "NocoDb API"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "eslint-config-metarhia": "^9.1.1"
+  },
+  "dependencies": {
+    "mime": "^4.0.6"
+  }
+}
