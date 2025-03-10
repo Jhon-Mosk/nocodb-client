@@ -1,0 +1,9 @@
+node_modules
+.fuse*
+tests
+.nvmrc
+eslint.config.js
+.editorconfig
+prettier.config.js
+.prettierignore
+*.env
