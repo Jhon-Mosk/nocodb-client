@@ -1,4 +1,4 @@
-# node-nocodb
+# nocodb-client
 NocoDb client for Node.js
 
 ## Usage NocoDb client
@@ -7,7 +7,7 @@ NocoDb client for Node.js
 const {
   env: { NOCODB_API_TOKEN, NOCODB_API_URL },
 } = require('node:process');
-const NocoDB = require('./main.js');
+const NocoDB = require('nocodb-client');
 
 const config = {
   token: NOCODB_API_TOKEN,
@@ -29,7 +29,7 @@ run().catch(console.error);
 const {
   env: { NOCODB_API_TOKEN, NOCODB_API_URL },
 } = require('node:process');
-const NocoDB = require('../main.js');
+const NocoDB = require('nocodb-client');
 
 const config = {
   token: NOCODB_API_TOKEN,

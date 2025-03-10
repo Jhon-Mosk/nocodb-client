@@ -1,9 +1,5 @@
 'use strict';
 
-/**
- * @version 2.0.0
- */
-
 const path = require('node:path');
 const fsp = require('node:fs/promises');
 
@@ -404,9 +400,6 @@ console.log(params);
 
     const params = {
       method: 'POST',
-      // headers: {
-      //   'Content-Type': '',
-      // },
       body: formData,
     };
 
