@@ -62,7 +62,9 @@ class NocoDB {
 
     if (requestParams) {
       const headers = Object.assign(params.headers, requestParams.headers);
-      if (requestParams.body instanceof FormData) delete headers['Content-Type'];
+      if (requestParams.body instanceof FormData) {
+        delete headers['Content-Type'];
+      }
       Object.assign(params, requestParams);
       params.headers = headers;
     }
@@ -324,7 +326,7 @@ class NocoDB {
     if (data) {
       params.body = JSON.stringify(data);
     }
-console.log(params);
+    console.log(params);
     return await this.fetch(`/api/v2/tables/${table.id}/records`, params);
   };
 
@@ -375,9 +377,9 @@ console.log(params);
   };
 
   /**
-   * для загруски вложений
+   * для загрузки вложений
    * @param {string} tableName - название таблиц
-   * @param {string[]} files - массив путей к файлам
+   * @param {[ string | { content: Buffer, filename: string }]} attachments - массив абсолютных путей к файлам, либо объект с буферами, filename должно содержать расширение файла
    * @returns {Promise<[{ path: string, title: string, mimetype: string, size: number, width: number, height: number, signedPath: string }]>} объект с описаниями загруженных вложений
    */
   uploadAttachments = async (tableName, files) => {
@@ -386,15 +388,38 @@ console.log(params);
     const query = { path: `noco/${this.#baseName}/${tableName}/attachments` };
 
     const formData = new FormData();
+
+    const addFileToFormData = (file, filename) => {
+      const type = mime.getType(filename);
+      if (!type) throw new Error('filename must contain a valid extension');
+      const blob = new Blob([file], { type });
+      formData.append(filename, blob, filename);
+    };
+
     await Promise.all(
-      files.map(async (filePath, i) => {
-        const fileName = path.basename(filePath);
-        const file = await fsp.readFile(filePath);
-        const type = mime.getType(filePath);
-        const blob = new Blob([file], {
-          type,
-        });
-        formData.append(`file${i}`, blob, fileName);
+      files.map(async (attachment) => {
+        if (typeof attachment === 'string') {
+          const fileName = path.basename(attachment);
+          const file = await fsp.readFile(attachment);
+          addFileToFormData(file, fileName);
+          return;
+        }
+
+        if (typeof attachment === 'object') {
+          const { content, filename } = attachment;
+
+          if (!(content instanceof Buffer)) {
+            throw new Error('content must be a Buffer');
+          }
+          if (typeof filename !== 'string') {
+            throw new Error('filename must be a string');
+          }
+
+          addFileToFormData(content, filename);
+          return;
+        }
+
+        throw new Error('unsupported attachment type');
       }),
     );
 
