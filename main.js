@@ -10,14 +10,6 @@ class NocoDB {
   #baseName;
   #tables = {};
 
-  /**
-   * @constructor
-   * @param {object} config -конфигурация
-   * @param {string} config.token - токен для авторизации
-   * @param {string} config.apiUrl - адрес API NocoDB
-   * @param {number} [config.timeout] - таймаут запроса
-   * @param {object} [config.tables] - словарь таблиц, ключ - название таблицы, значение - идентификатор таблицы
-   */
   constructor({ token, apiUrl, timeout = 5000, tables }) {
     this.#token = token;
     this.#apiUrl = apiUrl;
@@ -25,11 +17,6 @@ class NocoDB {
     if (tables) this.#tables = tables;
   }
 
-  /**
-   * подключение к базе
-   * @param {string} baseName название базы
-   * @returns {Promise<void>}
-   */
   connect = async (baseName) => {
     if (!baseName) throw new Error('Не указано название базы');
     const base = await this.#getBases(baseName);
@@ -43,14 +30,7 @@ class NocoDB {
     }, {});
   };
 
-  /**
-   * для запросов к NocoDB
-   * @param {string} endpoint эндпоинт
-   * @param {object} [requestParams] параметры запроса
-   * @param {object} [queryParams] параметры запроса
-   * @returns {Promise<object|null>} объект с результатами запроса или null если запись не найдена
-   */
-  fetch = async (endpoint, requestParams = {}, queryParams) => {
+  fetch = async (endpoint, requestParams, queryParams) => {
     const params = {
       signal: AbortSignal.timeout(this.#timeout),
       headers: {
@@ -119,7 +99,7 @@ class NocoDB {
   /**
    * для получения списка баз
    * @param {string} baseName название базы
-   * @returns {Promise<[{}]|{}>} если указано название базы - возвращает объект базы, если нет - возвращает список баз
+   * @returns {Promise<import('./Api').BaseType[] | import('./Api').BaseType>} если указано название базы - возвращает объект базы, если нет - возвращает список баз
    */
   #getBases = async (baseName) => {
     const endpoint = '/api/v2/meta/bases';
@@ -133,18 +113,17 @@ class NocoDB {
     return bases.list;
   };
 
+  /**
+   * для получения таблицы
+   * @param {string} tableName название таблицы
+   * @returns {import('./Api').TableType} объект таблицы
+   */
   #getTable = (tableName) => {
     const table = this.#tables[tableName];
     if (!table) throw new Error(`Таблица ${tableName} не найдена.`);
     return table;
   };
 
-  /**
-   * для получения списка вебхуков
-   * https://all-apis.nocodb.com/#tag/DB-Table-Webhook/operation/db-table-webhook-list
-   * @param {string} tableName - название таблицы
-   * @returns {Promise<Array>} с объектами вебхуков
-   */
   getWebhooks = async (tableName) => {
     const table = this.#getTable(tableName);
     const endpoint = `/api/v1/db/meta/tables/${table.id}/hooks`;
@@ -152,122 +131,29 @@ class NocoDB {
     return data.list;
   };
 
-  /**
- * для создания вебхука
- * https://all-apis.nocodb.com/#tag/DB-Table-Webhook/operation/db-table-webhook-create
- * @param {string} tableName - название таблицы
- * @param {object} body - тело запроса
- * @param {number|boolean} [body.active] - включенный или нет
- * @param {number|boolean} [body.async] - асинхронный или нет
- * @param {string} [body.description] - описание <= 255 символов
- * @param {string} [body.env] - окружение для вебхука, известное значение "all"
- * @param {string} body.event - тип события: "after", "before"
- * @param {string} [body.fk_model_id] - внешний ключ к модели
- * @param {string} [body.id] - уникальный идентификатор [ 0 .. 20 ] символов
- * @param {object|string} body.notification - уведомление о перехвате, включая такую информацию, как тип, полезная нагрузка, метод, тело и т. д.
- * @param {string} body.operation - операция перехвата: "insert", "update", "delete", "bulkInsert", "bulkUpdate", "bulkDelete"
- * @param {number} [body.retries] - количество повторов
- * @param {number} [body.retry_interval] - интервал повторов
- * @param {number} [body.timeout] - таймаут
- * @param {string} body.title - название перехватчика
- * @param {string} [body.type] - тип перехватчика
- * @param {number|boolean} [body.condition] - связан ли этот перехватчик с какими-то фильтрами
- * @param {boolean} body.payload - не описан в документации, но без него не отправиться вебхук с типом URL. Требуется true, чтобы использовать payload из notification
- * @returns {Promise<object>} созданный вебхук
- * @example body = {
-    active: 1,
-    async: 0,
-    description: "This is my hook description",
-    env: "all",
-    event: "after",
-    payload: true,
-    notification: {
-      type: "URL",
-      payload: {
-        body: { chat_id: 68***53, text: "{{ json data }}" },
-        parameters: [{}],
-        headers: [{}],
-        auth: "",
-        path: "https://api.telegram.org/bot56***Rk/sendMessage",
-      },
-    },
-    type: "URL",
-    operation: "insert",
-    retries: 3,
-    retry_interval: 60000,
-    timeout: 60000,
-    title: "webhook by api",
-    condition: 0,
-  }
- */
-  createWebhook = async (tableName, body = {}) => {
+  createWebhook = async (tableName, webhook = {}) => {
     const table = this.#getTable(tableName);
     const endpoint = `/api/v1/db/meta/tables/${table.id}/hooks`;
     return await this.fetch(endpoint, {
       method: 'POST',
-      body: JSON.stringify(body),
+      body: JSON.stringify(webhook),
     });
   };
 
-  /**
-   * для обновления вебхука
-   * https://all-apis.nocodb.com/#tag/DB-Table-Webhook/operation/db-table-webhook-update
-   * @param {string} hookId - идентификатор вебхука
-   * @param {object} body - тело запроса
-   * @param {number|boolean} [body.active] - включенный или нет
-   * @param {number|boolean} [body.async] - асинхронный или нет
-   * @param {string} [body.description] - описание <= 255 символов
-   * @param {string} [body.env] - окружение для вебхука, известное значение "all"
-   * @param {string} [body.event] - тип события: "after", "before"
-   * @param {string} [body.fk_model_id] - внешний ключ к модели
-   * @param {string} [body.id] - уникальный идентификатор [ 0 .. 20 ] символов
-   * @param {object|string} [body.notification] - уведомление о перехвате, включая такую информацию, как тип, полезная нагрузка, метод, тело и т. д.
-   * @param {string} [body.operation] - операция перехвата: "insert", "update", "delete", "bulkInsert", "bulkUpdate", "bulkDelete"
-   * @param {number} [body.retries] - количество повторов
-   * @param {number} [body.retry_interval] - интервал повторов
-   * @param {number} [body.timeout] - таймаут
-   * @param {string} [body.title] - название перехватчика
-   * @param {string} [body.type] - тип перехватчика
-   * @param {string} [body.version] - версия перехватчика: "v1", "v2"
-   * @param {boolean} [body.payload] - не описан в документации, но без него не отправиться вебхук с типом URL. Требуется true, чтобы использовать payload из notification
-   * @returns {Promise<object>} созданный вебхук
-   * @returns
-   */
-  updateWebhook = async (hookId, body = {}) => {
+  updateWebhook = async (hookId, webhook = {}) => {
     const endpoint = `/api/v1/db/meta/hooks/${hookId}`;
     return await this.fetch(endpoint, {
       method: 'PATCH',
-      body: JSON.stringify(body),
+      body: JSON.stringify(webhook),
     });
   };
 
-  /**
-   * для запроса всех записей
-   * @param {string} tableName название таблицы
-   * @param {object} params параметры запроса
-   * @param {string} [params.fields] название полей перечисленные через запятую
-   * @param {string} [params.sort] название полей перечисленные через запятую для сортировки строк, строки будут сортироваться в порядке возрастания на основе предоставленных столбцов. Для сортировки по убыванию укажите префикс - вместе с именем столбца.
-   * @param {string} [params.where] это можно использовать для фильтрации строк, которая принимает сложные условия. Подробнее: https://docs.nocodb.com/developer-resources/rest-apis#comparison-operators
-   * @param {number} [params.limit = 25] используется для разбиения на страницы, размер коллекции ответов зависит от значения ограничения со значением по умолчанию 25 и максимальным значением 1000
-   * @param {string} [params.shuffle] используется для разбиения на страницы, ответ будет перемешан, если для него установлено значение 1
-   * @param {string} [params.offset] используется для нумерации страниц, значение помогает выбрать коллекцию из определенного индекса
-   * @returns {Promise<{"list": [], "pageInfo": { "totalRows": 0, "page": 1, "pageSize": 25, "isFirstPage": true, "isLastPage": true }}} объект с результатами запроса
-   */
   getAll = async (tableName, params = {}) => {
     const table = this.#getTable(tableName);
-    const searchParams = new URLSearchParams(params);
-    const endpoint = `/api/v2/tables/${
-      table.id
-    }/records?${searchParams.toString()}`;
-    return await this.fetch(endpoint);
+    const endpoint = `/api/v2/tables/${table.id}/records`;
+    return await this.fetch(endpoint, null, params);
   };
 
-  /**
-   * для запроса больше 1000 записей из NocoDB
-   * @param {string} tableName - название таблицы
-   * @param {Object} params - параметры для функции запроса данных
-   * @returns {Promise<{"list": [], "pageInfo": { "totalRows": 0, "page": 1, "pageSize": 25, "isFirstPage": true, "isLastPage": true }}} объект с результатами запроса
-   */
   getOver1000 = async (tableName, params = {}) => {
     const result = {
       list: [],
@@ -299,25 +185,15 @@ class NocoDB {
     return result;
   };
 
-  /**
-   * для запроса записи по первичному ключу
-   * @param {string} tableName название таблицы
-   * @param {number|string} id идентификатор записи
-   * @returns {Promise<object|null>} объект с результатами запроса или null если запись не найдена
-   */
-  getOne = async (tableName, id) => {
+  getOne = async (tableName, id, params) => {
     const table = this.#getTable(tableName);
-    return await this.fetch(`/api/v2/tables/${table.id}/records/${id}`);
+    const endpoint = `/api/v2/tables/${table.id}/records/${id}`;
+    return await this.fetch(endpoint, null, params);
   };
 
-  /**
-   * для создания
-   * @param {string} tableName название таблицы
-   * @param {object} data с данными для записи, должен содержать id, если таблица без автоикремента
-   * @returns {Promise<{pk: value}>} объект с первичным ключом созданной записи
-   */
   create = async (tableName, data) => {
     const table = this.#getTable(tableName);
+    const endpoint = `/api/v2/tables/${table.id}/records`;
 
     const params = {
       method: 'POST',
@@ -326,20 +202,13 @@ class NocoDB {
     if (data) {
       params.body = JSON.stringify(data);
     }
-    console.log(params);
-    return await this.fetch(`/api/v2/tables/${table.id}/records`, params);
+
+    return await this.fetch(endpoint, params);
   };
 
-  /**
-   * для создания ссылки
-   * @param {string} tableName название таблицы
-   * @param {string} linkId идентификатор поля ссылки
-   * @param {number} recordId первичный ключ записи
-   * @param {[{}]} data c первичными ключами записей из таблицы на которую ссылается linkId
-   * @returns {Promise<boolean>}
-   */
   createLink = async (tableName, linkId, recordId, data) => {
     const table = this.#getTable(tableName);
+    const endpoint = `/api/v2/tables/${table.id}/links/${linkId}/records/${recordId}`;
 
     const params = {
       method: 'POST',
@@ -349,21 +218,12 @@ class NocoDB {
       params.body = JSON.stringify(data);
     }
 
-    return await this.fetch(
-      `/api/v2/tables/${table.id}/links/${linkId}/records/${recordId}`,
-
-      params,
-    );
+    return await this.fetch(endpoint, params);
   };
 
-  /**
-   * для обновления
-   * @param {string} tableName название таблицы
-   * @param {{}} data с данными для обновления, должны содержать первичный ключ
-   * @returns {Promise<{}>} объект с данными по обновлённой записи
-   */
   update = async (tableName, data) => {
     const table = this.#getTable(tableName);
+    const endpoint = `/api/v2/tables/${table.id}/records`;
 
     const params = {
       method: 'PATCH',
@@ -373,15 +233,9 @@ class NocoDB {
       params.body = JSON.stringify(data);
     }
 
-    return await this.fetch(`/api/v2/tables/${table.id}/records`, params);
+    return await this.fetch(endpoint, params);
   };
 
-  /**
-   * для загрузки вложений
-   * @param {string} tableName - название таблиц
-   * @param {[ string | { content: Buffer, filename: string }]} attachments - массив абсолютных путей к файлам, либо объект с буферами, filename должно содержать расширение файла
-   * @returns {Promise<[{ path: string, title: string, mimetype: string, size: number, width: number, height: number, signedPath: string }]>} объект с описаниями загруженных вложений
-   */
   uploadAttachments = async (tableName, files) => {
     const mime = (await import('mime')).default;
     const endpoint = '/api/v2/storage/upload';
