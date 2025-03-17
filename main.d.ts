@@ -160,6 +160,17 @@ declare module './main.js' {
       tableName: string,
       files: [string | { content: Buffer; filename: string }],
     ): Promise<AttachmentReqType>;
+
+    /**
+     * Downloads an attachment from a URL and saves it to a destination.
+     * @param attachment The NocoDB attachment.
+     * @param directory The destination directory to save the attachment to.
+     * @returns Promise<string> file path.
+     */
+    downloadAttachment(
+      attachment: AttachmentReqType,
+      directory: string,
+    ): Promise<string>;
   }
 
   export = NocoDB;

@@ -2,6 +2,8 @@
 
 const path = require('node:path');
 const fsp = require('node:fs/promises');
+const fs = require('node:fs');
+const { pipeline } = require('node:stream/promises');
 
 class NocoDB {
   #timeout;
@@ -283,6 +285,22 @@ class NocoDB {
     };
 
     return await this.fetch(endpoint, params, query);
+  };
+
+  downloadAttachment = async (attachment, directory) => {
+    const { path: endpoint, title } = attachment;
+    const url = new URL(endpoint, this.#apiUrl);
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`${response.status}: ${response.statusText}`);
+    }
+    const filePath = path.join(directory, title);
+    const fileStream = fs.createWriteStream(filePath, { autoClose: true });
+
+    await pipeline(response.body, fileStream);
+
+    return filePath;
   };
 }
 
