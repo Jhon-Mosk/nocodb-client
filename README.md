@@ -1,5 +1,5 @@
 # nocodb-client
-NocoDb client for Node.js. The work has been tested on version 0.255.2
+NocoDb client for Node.js. The work has been tested from version 0.255.2 to 0.262.5
 
 ## Installation
 
