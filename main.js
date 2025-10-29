@@ -140,14 +140,14 @@ class NocoDB {
   getWebhooks = async (tableName) => {
     const table = this.#getTable(tableName);
     const endpoint = `/api/v1/db/meta/tables/${table.id}/hooks`;
-    const data = await this.fetch(endpoint);
+    const data = this.fetch(endpoint);
     return data.list;
   };
 
   createWebhook = async (tableName, webhook = {}) => {
     const table = this.#getTable(tableName);
     const endpoint = `/api/v1/db/meta/tables/${table.id}/hooks`;
-    return await this.fetch(endpoint, {
+    return this.fetch(endpoint, {
       method: 'POST',
       body: JSON.stringify(webhook),
     });
@@ -155,7 +155,7 @@ class NocoDB {
 
   updateWebhook = async (hookId, webhook = {}) => {
     const endpoint = `/api/v1/db/meta/hooks/${hookId}`;
-    return await this.fetch(endpoint, {
+    return this.fetch(endpoint, {
       method: 'PATCH',
       body: JSON.stringify(webhook),
     });
@@ -164,7 +164,7 @@ class NocoDB {
   getAll = async (tableName, params = {}) => {
     const table = this.#getTable(tableName);
     const endpoint = `/api/v2/tables/${table.id}/records`;
-    return await this.fetch(endpoint, null, params);
+    return this.fetch(endpoint, null, params);
   };
 
   getOver1000 = async (tableName, params = {}) => {
@@ -201,7 +201,7 @@ class NocoDB {
   getOne = async (tableName, id, params) => {
     const table = this.#getTable(tableName);
     const endpoint = `/api/v2/tables/${table.id}/records/${id}`;
-    return await this.fetch(endpoint, null, params);
+    return this.fetch(endpoint, null, params);
   };
 
   create = async (tableName, data) => {
@@ -216,7 +216,7 @@ class NocoDB {
       params.body = JSON.stringify(data);
     }
 
-    return await this.fetch(endpoint, params);
+    return this.fetch(endpoint, params);
   };
 
   createLink = async (tableName, linkId, recordId, data) => {
@@ -231,7 +231,7 @@ class NocoDB {
       params.body = JSON.stringify(data);
     }
 
-    return await this.fetch(endpoint, params);
+    return this.fetch(endpoint, params);
   };
 
   update = async (tableName, data) => {
@@ -246,7 +246,7 @@ class NocoDB {
       params.body = JSON.stringify(data);
     }
 
-    return await this.fetch(endpoint, params);
+    return this.fetch(endpoint, params);
   };
 
   uploadAttachments = async (tableName, files) => {
@@ -295,7 +295,7 @@ class NocoDB {
       body: formData,
     };
 
-    return await this.fetch(endpoint, params, query);
+    return this.fetch(endpoint, params, query);
   };
 
   downloadAttachment = async (attachment, directory) => {
@@ -312,6 +312,12 @@ class NocoDB {
     await pipeline(response.body, fileStream);
 
     return filePath;
+  };
+
+  count = async (tableName, params = {}) => {
+    const table = this.#getTable(tableName);
+    const endpoint = `/api/v2/tables/${table.id}/records/count`;
+    return this.fetch(endpoint, null, params);
   };
 }
 

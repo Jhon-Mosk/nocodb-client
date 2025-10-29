@@ -1,3 +1,4 @@
+/* eslint-disable strict */
 import {
   AttachmentReqType,
   BaseQueryParams,
@@ -162,15 +163,26 @@ declare module './main.js' {
     ): Promise<AttachmentReqType>;
 
     /**
-     * Downloads an attachment from a URL and saves it to a destination.
-     * @param attachment The NocoDB attachment.
-     * @param directory The destination directory to save the attachment to.
+     * Загружает вложение с URL-адреса и сохраняет его в указанном месте.
+     * @param attachment Вложение NocoDB.
+     * @param directory Путь к каталогу, в который нужно сохранить вложение.
      * @returns Promise<string> file path.
      */
     downloadAttachment(
       attachment: AttachmentReqType,
       directory: string,
     ): Promise<string>;
+
+    /**
+     * Количество записей в таблице.
+     * @param tableName Название таблицы.
+     * @param params Параметры запроса.
+     * @returns Promise<{ count: number }>
+     */
+    count(
+      tableName: string,
+      params?: BaseQueryParams,
+    ): Promise<{ count: number }>;
   }
 
   export = NocoDB;
