@@ -14,8 +14,7 @@
     "url": "https://jhon-mosk.ru/"
   },
   "engines": {
-    "node": ">=18.0.0",
-    "npm": ">=7.24.2"
+    "node": "^20.19.5"
   },
   "repository": {
     "type": "git",
