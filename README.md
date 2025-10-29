@@ -1,91 +1,125 @@
-# nocodb-client
-NocoDb client for Node.js. The work has been tested from version 0.255.2 to 0.262.5
+# NocoDB Client
 
-## Installation
+Простая и типизированная библиотека для взаимодействия с [NocoDB](https://nocodb.com/) через REST API. Позволяет управлять таблицами, записями, вложениями и вебхуками.
+
+Работа была протестирована с версии 0.255.2 до 0.262.5.
+
+## Установка
 
 ```bash
 npm install nocodb-client
+# или
+yarn add nocodb-client
 ```
 
-## Usage NocoDb client
+## Быстрый старт
 
 ```js
-const {
-  env: { NOCODB_API_TOKEN, NOCODB_API_URL },
-} = require('node:process');
-const NocoDB = require('nocodb-client');
+import NocoDB from 'nocodb-client';
 
-const config = {
-  token: NOCODB_API_TOKEN,
-  apiUrl: NOCODB_API_URL,
-};
+const nc = new NocoDB({
+  token: 'YOUR_API_TOKEN',
+  apiUrl: 'https://your-nocodb-instance.com',
+  baseName: 'your-base-name',
+  timeout: 10000, // опционально, по умолчанию 5000
+});
 
-const run = async () => {
-  const baseName = 'baseName';
-  const db = new NocoDB(config);
-  await db.connect(baseName);
-  const data = await db.getAll('tableName');
-  console.log({ data: data.list });
-};
+// Получить все записи из таблицы "Tasks"
+const tasks = await nc.getAll('Tasks');
 
-run().catch(console.error);
-```
+// Создать новую запись
+const newTask = await nc.create('Tasks', { title: 'Новая задача', status: 'todo' });
 
-```js
-const {
-  env: { NOCODB_API_TOKEN, NOCODB_API_URL },
-} = require('node:process');
-const NocoDB = require('nocodb-client');
+// Получить одну запись по ID
+const task = await nc.getOne('Tasks', newTask.id);
 
-const config = {
-  token: NOCODB_API_TOKEN,
-  apiUrl: NOCODB_API_URL,
-};
+// Обновить запись
+await nc.update('Tasks', { id: task.id, status: 'done' });
 
-const run = async () => {
-  const baseName = 'baseName';
-  const db = new NocoDB(config);
-  await db.connect(baseName);
-  const attachments = await db.uploadAttachments('tableName', ['absolute path to file 1', 'absolute path to file 2']);
-  return await db.create('tableName', {
+// Создать вебхук
+await nc.createWebhook('Tasks', {
+  type: 'URL',
+  url: 'https://your-webhook-endpoint.com/nocodb',
+  event: 'create',
+  payload: true, // обязательно для URL-вебхуков
+});
+
+// Загрузить вложения
+const attachments = await nc.uploadAttachments('tableName', ['absolute path to file 1', 'absolute path to file 2']);
+await nc.create('tableName', {
       fieldName1: 'fieldValue',
       fieldName2: 2,
       attachments,
     });
-};
 
-run().then(console.log).catch(console.error);
-```
-
-```js
-const {
-  env: { NOCODB_API_TOKEN, NOCODB_API_URL },
-} = require('node:process');
-const fs = require('node:fs');
-const path = require('node:path');
-const NocoDB = require('nocodb-client');
-
-const config = {
-  token: NOCODB_API_TOKEN,
-  apiUrl: NOCODB_API_URL,
-};
-
-const run = async () => {
-  const baseName = 'baseName';
-  const db = new NocoDB(config);
-  await db.connect(baseName);
-  const filePaths = ['absolute path to file 1', 'absolute path to file 2'];
+// Загрузить вложения
+const filePaths = ['absolute path to file 1', 'absolute path to file 2'];
   const buffers = filePaths.map((filePath) => {
     const buffer = fs.readFileSync(filePath);
     return { content: buffer, filename: path.basename(filePath) };
   });
-  const attachments = await db.uploadAttachments('tableName', buffers);
-  return await db.create('tableName', {
+  const attachments = await nc.uploadAttachments('tableName', buffers);
+  await nc.create('tableName', {
       fieldName1: 'fieldValue',
       fieldName2: 2,
       attachments,
     });
-};
+```
 
-run().then(console.log).catch(console.error);
+## Конфигурация
+
+При создании экземпляра `NocoDB` требуется передать объект конфигурации:
+
+| Параметр   | Тип    | Обязательный | Описание                                              |
+| ---------- | ------ | ------------ | ----------------------------------------------------- |
+| `token`    | string | ✅            | API-токен из NocoDB (Project → Settings → API tokens) |
+| `apiUrl`   | string | ✅            | Базовый URL вашего NocoDB-инстанса                    |
+| `baseName` | string | ✅            | Название базы данных (project)                        |
+| `timeout`  | number | ❌            | Таймаут запросов в миллисекундах (по умолчанию: 5000) |
+
+## Основные методы
+
+### Записи
+
+- `getAll(tableName, params?)` — получить все записи (до 1000)
+- `getOver1000(tableName, params?)` — получить более 1000 записей (с пагинацией под капотом)
+- `getOne(tableName, id, params?)` — получить одну запись по ID
+- `create(tableName, data)` — создать запись
+- `update(tableName, data)` — обновить запись (должна содержать первичный ключ)
+- `count(tableName, params?)` — получить количество записей
+
+### Связи
+
+- `createLink(tableName, linkId, recordId, data)` — создать связь между записями
+
+### Вложения
+
+- `uploadAttachments(tableName, files)` — загрузить файлы (локальные пути или буферы)
+- `downloadAttachment(attachment, directory)` — скачать вложение по URL и сохранить локально
+
+### Вебхуки
+
+- `getWebhooks(tableName)` — получить список вебхуков таблицы
+- `createWebhook(tableName, webhook)` — создать вебхук
+- `updateWebhook(hookId, webhook)` — обновить вебхук
+
+> ⚠️ Для URL-вебхуков обязательно указывайте `payload: true`, иначе полезная нагрузка не будет отправляться.
+
+## Типы
+
+Библиотека полностью типизирована с использованием TypeScript. Основные интерфейсы:
+
+- `HookType` — структура вебхука
+- `TableRecords` — результат запроса записей
+- `BaseQueryParams` — параметры фильтрации, сортировки и пагинации
+- `AttachmentReqType` — метаданные вложения
+
+## Требования
+
+- Node.js ≥ 18
+- TypeScript ≥ 4.5 (если используется в TS-проекте)
+
+## Лицензия
+
+MIT
 ```
