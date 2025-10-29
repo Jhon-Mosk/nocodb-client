@@ -4,6 +4,17 @@ const path = require('node:path');
 const fsp = require('node:fs/promises');
 const fs = require('node:fs');
 const { pipeline } = require('node:stream/promises');
+const { setTimeout } = require('node:timers/promises');
+const pRetry = require('p-retry').default;
+
+const pRetryParams = {
+  onFailedAttempt: async () => {
+    await setTimeout(100);
+  },
+  // The number of milliseconds before starting the first retry.
+  minTimeout: 100,
+  retries: 3,
+};
 
 class NocoDB {
   #timeout;
@@ -60,7 +71,7 @@ class NocoDB {
     }
 
     try {
-      const response = await fetch(url, params);
+      const response = await pRetry(() => fetch(url, params), pRetryParams);
 
       if (response.ok) {
         return await response.json();
