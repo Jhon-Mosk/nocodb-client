@@ -4,9 +4,8 @@ import {
   BaseQueryParams,
   HookType,
   TableRecords,
-  TableType,
 } from './interfaces';
-import { AnyObject, QueryParamsType } from './types';
+import { AnyObject } from './types';
 
 declare module './main.js' {
   /**
@@ -17,10 +16,10 @@ declare module './main.js' {
     token: string;
     /** URL API NocoDB. */
     apiUrl: string;
+    /** Название базы данных */
+    baseName: string;
     /** Таймаут для запросов в миллисекундах. */
     timeout?: number;
-    /** Словарь таблиц, ключ - название таблицы, значение - идентификатор таблицы. */
-    tables?: Record<string, TableType>;
   }
 
   /**
@@ -32,26 +31,6 @@ declare module './main.js' {
      * @param config Конфигурация для инициализации NocoDB.
      */
     constructor(config: NocoDBConfig);
-
-    /**
-     * Подключается к базе данных.
-     * @param baseName Название базы данных.
-     * @returns Promise<void>
-     */
-    connect(baseName: string): Promise<void>;
-
-    /**
-     * Выполняет запрос к API.
-     * @param endpoint Эндпоинт API.
-     * @param requestParams Параметры запроса.
-     * @param queryParams Параметры запроса.
-     * @returns Promise<AnyObject | null>
-     */
-    fetch(
-      endpoint: string,
-      requestParams?: RequestInit,
-      queryParams?: QueryParamsType,
-    ): Promise<AnyObject | null>;
 
     /**
      * Получает вебхуки для указанной таблицы.

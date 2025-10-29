@@ -22,28 +22,16 @@ class NocoDB {
   #apiUrl;
   #baseName;
   #tables = {};
+  #connected = false;
 
-  constructor({ token, apiUrl, timeout = 5000, tables }) {
+  constructor({ token, apiUrl, timeout = 5000, baseName }) {
     this.#token = token;
     this.#apiUrl = apiUrl;
     this.#timeout = timeout;
-    if (tables) this.#tables = tables;
+    this.#baseName = baseName;
   }
 
-  connect = async (baseName) => {
-    if (!baseName) throw new Error('Не указано название базы');
-    const base = await this.#getBases(baseName);
-    this.#baseName = baseName;
-
-    const endpoint = `/api/v2/meta/bases/${base.id}/tables`;
-    const tables = await this.fetch(endpoint);
-    this.#tables = tables.list.reduce((acc, table) => {
-      acc[table.title] = table;
-      return acc;
-    }, {});
-  };
-
-  fetch = async (endpoint, requestParams, queryParams) => {
+  #fetch = async (endpoint, requestParams, queryParams) => {
     const params = {
       signal: AbortSignal.timeout(this.#timeout),
       headers: {
@@ -109,6 +97,18 @@ class NocoDB {
     }
   };
 
+  #connect = async (baseName) => {
+    if (!baseName) throw new Error('Не указано название базы');
+    const base = await this.#getBases(baseName);
+    const endpoint = `/api/v2/meta/bases/${base.id}/tables`;
+    const tables = await this.#fetch(endpoint);
+    this.#tables = tables.list.reduce((acc, table) => {
+      acc[table.title] = table;
+      return acc;
+    }, {});
+    this.#connected = true;
+  };
+
   /**
    * для получения списка баз
    * @param {string} baseName название базы
@@ -116,7 +116,7 @@ class NocoDB {
    */
   #getBases = async (baseName) => {
     const endpoint = '/api/v2/meta/bases';
-    const bases = await this.fetch(endpoint);
+    const bases = await this.#fetch(endpoint);
     if (!bases.pageInfo.isLastPage) throw new Error('Не все базы получены.');
     if (baseName) {
       const base = bases.list.find((base) => base.title === baseName);
@@ -131,23 +131,24 @@ class NocoDB {
    * @param {string} tableName название таблицы
    * @returns {import('./Api').TableType} объект таблицы
    */
-  #getTable = (tableName) => {
+  #getTable = async (tableName) => {
+    if (!this.#connected) await this.#connect(this.#baseName);
     const table = this.#tables[tableName];
     if (!table) throw new Error(`Таблица ${tableName} не найдена.`);
     return table;
   };
 
   getWebhooks = async (tableName) => {
-    const table = this.#getTable(tableName);
+    const table = await this.#getTable(tableName);
     const endpoint = `/api/v1/db/meta/tables/${table.id}/hooks`;
-    const data = this.fetch(endpoint);
+    const data = this.#fetch(endpoint);
     return data.list;
   };
 
   createWebhook = async (tableName, webhook = {}) => {
-    const table = this.#getTable(tableName);
+    const table = await this.#getTable(tableName);
     const endpoint = `/api/v1/db/meta/tables/${table.id}/hooks`;
-    return this.fetch(endpoint, {
+    return this.#fetch(endpoint, {
       method: 'POST',
       body: JSON.stringify(webhook),
     });
@@ -155,16 +156,16 @@ class NocoDB {
 
   updateWebhook = async (hookId, webhook = {}) => {
     const endpoint = `/api/v1/db/meta/hooks/${hookId}`;
-    return this.fetch(endpoint, {
+    return this.#fetch(endpoint, {
       method: 'PATCH',
       body: JSON.stringify(webhook),
     });
   };
 
   getAll = async (tableName, params = {}) => {
-    const table = this.#getTable(tableName);
+    const table = await this.#getTable(tableName);
     const endpoint = `/api/v2/tables/${table.id}/records`;
-    return this.fetch(endpoint, null, params);
+    return this.#fetch(endpoint, null, params);
   };
 
   getOver1000 = async (tableName, params = {}) => {
@@ -199,13 +200,13 @@ class NocoDB {
   };
 
   getOne = async (tableName, id, params) => {
-    const table = this.#getTable(tableName);
+    const table = await this.#getTable(tableName);
     const endpoint = `/api/v2/tables/${table.id}/records/${id}`;
-    return this.fetch(endpoint, null, params);
+    return this.#fetch(endpoint, null, params);
   };
 
   create = async (tableName, data) => {
-    const table = this.#getTable(tableName);
+    const table = await this.#getTable(tableName);
     const endpoint = `/api/v2/tables/${table.id}/records`;
 
     const params = {
@@ -216,11 +217,11 @@ class NocoDB {
       params.body = JSON.stringify(data);
     }
 
-    return this.fetch(endpoint, params);
+    return this.#fetch(endpoint, params);
   };
 
   createLink = async (tableName, linkId, recordId, data) => {
-    const table = this.#getTable(tableName);
+    const table = await this.#getTable(tableName);
     const endpoint = `/api/v2/tables/${table.id}/links/${linkId}/records/${recordId}`;
 
     const params = {
@@ -231,11 +232,11 @@ class NocoDB {
       params.body = JSON.stringify(data);
     }
 
-    return this.fetch(endpoint, params);
+    return this.#fetch(endpoint, params);
   };
 
   update = async (tableName, data) => {
-    const table = this.#getTable(tableName);
+    const table = await this.#getTable(tableName);
     const endpoint = `/api/v2/tables/${table.id}/records`;
 
     const params = {
@@ -246,7 +247,7 @@ class NocoDB {
       params.body = JSON.stringify(data);
     }
 
-    return this.fetch(endpoint, params);
+    return this.#fetch(endpoint, params);
   };
 
   uploadAttachments = async (tableName, files) => {
@@ -295,7 +296,7 @@ class NocoDB {
       body: formData,
     };
 
-    return this.fetch(endpoint, params, query);
+    return this.#fetch(endpoint, params, query);
   };
 
   downloadAttachment = async (attachment, directory) => {
@@ -315,9 +316,9 @@ class NocoDB {
   };
 
   count = async (tableName, params = {}) => {
-    const table = this.#getTable(tableName);
+    const table = await this.#getTable(tableName);
     const endpoint = `/api/v2/tables/${table.id}/records/count`;
-    return this.fetch(endpoint, null, params);
+    return this.#fetch(endpoint, null, params);
   };
 }
 

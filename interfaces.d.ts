@@ -1,3 +1,4 @@
+/* eslint-disable strict */
 import {
   AnyObject,
   BoolType,
