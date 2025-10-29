@@ -1,15 +1,58 @@
 'use strict';
 
-const config = require('eslint-config-metarhia');
+const neostandard = require('neostandard');
 
 module.exports = [
-  ...config,
+  ...neostandard({
+    ignores: [...neostandard.resolveIgnoresFromGitignore(), '**/temp/**/*'],
+    env: ['node', 'commonjs'],
+    ts: true,
+    semi: true,
+    noJsx: true,
+  }),
   {
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'commonjs',
+    },
     rules: {
-      'no-unused-vars': 'warn',
-      'max-len': [
+      strict: ['error', 'global'],
+      'no-loop-func': ['error'],
+      curly: ['error', 'multi-line', 'consistent'],
+      'consistent-return': ['error', { treatUndefinedAsUnspecified: true }],
+      'no-unused-private-class-members': ['error'],
+      'no-invalid-this': ['error'],
+      'class-methods-use-this': ['warn'],
+      'arrow-body-style': ['error', 'as-needed'],
+      'arrow-parens': ['error', 'always'],
+      'prefer-arrow-callback': ['error'],
+      'prefer-numeric-literals': ['error'],
+      'prefer-rest-params': ['error'],
+      'prefer-spread': ['error'],
+      'no-console': ['off'],
+      'max-nested-callbacks': [
         'error',
         {
+          max: 5,
+        },
+      ],
+      'no-lonely-if': ['error'],
+      'no-nested-ternary': ['error'],
+      'operator-assignment': ['error', 'always'],
+      '@stylistic/comma-dangle': ['error', 'always-multiline'],
+      '@stylistic/space-before-function-paren': [
+        'error',
+        {
+          anonymous: 'always',
+          named: 'never',
+          asyncArrow: 'always',
+        },
+      ],
+      '@stylistic/linebreak-style': ['error', 'unix'],
+      '@stylistic/max-len': [
+        'error',
+        {
+          code: 80,
           ignoreComments: true,
           ignoreTrailingComments: true,
           ignoreUrls: true,
